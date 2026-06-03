@@ -38,11 +38,11 @@ partial class FormDashboard
         Controls.Add(layout);
 
         _kpiRow = BuildKpiRow();
-        _chart = BuildChart();
+        _milieu = BuildMilieu();
         _energyRow = BuildEnergyRow();
 
         layout.Controls.Add(_kpiRow, 0, 0);
-        layout.Controls.Add(_chart, 0, 1);
+        layout.Controls.Add(_milieu, 0, 1);
         layout.Controls.Add(_energyRow, 0, 2);
 
         Load += FormDashboard_Load;

@@ -64,6 +64,44 @@ public class ReadingsController : ControllerBase
     }
 
     /// <summary>
+    /// Agrégation simple d'un capteur par minute, heure ou jour (moyenne).
+    /// </summary>
+    /// <param name="code">Code du capteur (ex. CPU_POWER).</param>
+    /// <param name="bucket">Granularité : "minute", "heure" ou "jour".</param>
+    /// <param name="minutes">Fenêtre glissante en minutes.</param>
+    [HttpGet("aggregate")]
+    public async Task<ActionResult<IEnumerable<PointDto>>> Aggregate(
+        [FromQuery] string code,
+        [FromQuery] string bucket = "minute",
+        [FromQuery] int minutes = 60)
+    {
+        var debut = DateTime.UtcNow.AddMinutes(-minutes);
+
+        // On récupère la fenêtre (filtrée + triée côté base) puis on agrège
+        // en mémoire : compatible SQLite comme InMemory, et facilement testable.
+        var points = await _db.Readings
+            .Where(r => r.SensorType!.Code == code && r.Horodatage >= debut)
+            .OrderBy(r => r.Horodatage)
+            .Select(r => new { r.Horodatage, r.Valeur })
+            .ToListAsync();
+
+        Func<DateTime, DateTime> tronquer = bucket.ToLowerInvariant() switch
+        {
+            "jour"  => t => new DateTime(t.Year, t.Month, t.Day, 0, 0, 0, t.Kind),
+            "heure" => t => new DateTime(t.Year, t.Month, t.Day, t.Hour, 0, 0, t.Kind),
+            _       => t => new DateTime(t.Year, t.Month, t.Day, t.Hour, t.Minute, 0, t.Kind),
+        };
+
+        var resultat = points
+            .GroupBy(p => tronquer(p.Horodatage))
+            .Select(g => new PointDto(g.Key, g.Average(x => x.Valeur)))
+            .OrderBy(p => p.Horodatage)
+            .ToList();
+
+        return resultat;
+    }
+
+    /// <summary>
     /// Énergie cumulée (Wh) sur une fenêtre, calculée par intégration
     /// (méthode des trapèzes) à partir de la puissance (W).
     /// </summary>

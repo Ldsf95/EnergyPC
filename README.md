@@ -153,6 +153,7 @@ utilisable et affiche l'erreur sans geler.
 | `GET` | `/api/readings/latest` | Dernière valeur de chaque capteur (snapshot). |
 | `GET` | `/api/readings/history?code=CPU_POWER&minutes=5` | Historique brut sur une fenêtre. |
 | `GET` | `/api/readings/history-minute?code=CPU_POWER&minutes=1440` | Historique « downsamplé » à la minute (24 h). |
+| `GET` | `/api/readings/aggregate?code=CPU_POWER&bucket=minute\|heure\|jour&minutes=60` | Agrégation (moyenne) par minute, heure ou jour. |
 | `GET` | `/api/readings/energie?code=SYSTEM_POWER&minutes=60` | Énergie cumulée (Wh) — intégration par trapèzes. |
 | `DELETE` | `/api/maintenance/purge?jours=7` | Purge des relevés de plus de N jours. |
 | `POST` | `/api/auth/login` | Échange identifiants → token JWT. |

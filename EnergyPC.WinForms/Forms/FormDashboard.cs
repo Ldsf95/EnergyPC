@@ -23,6 +23,8 @@ public partial class FormDashboard : Form
 
     private TableLayoutPanel _kpiRow = null!;
     private CartesianChart _chart = null!;
+    private TableLayoutPanel _milieu = null!;
+    private DataGridView _grille = null!;
     private Panel _energyRow = null!;
 
     private Dictionary<string, KpiCard> _kpis = new();
@@ -76,7 +78,76 @@ public partial class FormDashboard : Form
         return row;
     }
 
-    // --- Zone 2 : graphique temps réel --------------------------------------
+    // --- Zone 2 : conteneur central (graphique à gauche, tableau à droite) ---
+    private TableLayoutPanel BuildMilieu()
+    {
+        var conteneur = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            RowCount = 1,
+            ColumnCount = 2
+        };
+        conteneur.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 62));
+        conteneur.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 38));
+
+        _chart = BuildChart();
+        _grille = BuildTable();
+
+        conteneur.Controls.Add(_chart, 0, 0);
+        conteneur.Controls.Add(_grille, 1, 0);
+        return conteneur;
+    }
+
+    /// <summary>Tableau des dernières valeurs de tous les capteurs.</summary>
+    private DataGridView BuildTable()
+    {
+        var grille = new DataGridView
+        {
+            Dock = DockStyle.Fill,
+            ReadOnly = true,
+            AllowUserToAddRows = false,
+            AllowUserToDeleteRows = false,
+            AllowUserToResizeRows = false,
+            RowHeadersVisible = false,
+            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+            BackgroundColor = Color.White,
+            BorderStyle = BorderStyle.FixedSingle,
+            Margin = new Padding(6)
+        };
+        // Réduit le scintillement lors des mises à jour à 1 Hz.
+        typeof(DataGridView).GetProperty("DoubleBuffered",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+            ?.SetValue(grille, true, null);
+
+        grille.Columns.Add("Capteur", "Capteur");
+        grille.Columns.Add("Valeur", "Valeur");
+        grille.Columns.Add("Unite", "Unité");
+        grille.Columns.Add("Famille", "Famille");
+        grille.Columns.Add("Horodatage", "Heure");
+        grille.Columns["Horodatage"]!.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+
+        return grille;
+    }
+
+    /// <summary>Met à jour le contenu du tableau des dernières valeurs.</summary>
+    private void MajTable(List<ReadingModel> latest)
+    {
+        _grille.SuspendLayout();
+        _grille.Rows.Clear();
+        foreach (var r in latest)
+        {
+            var heure = r.Horodatage?.ToLocalTime().ToString("HH:mm:ss") ?? "—";
+            _grille.Rows.Add(
+                r.Libelle,
+                Format.Valeur(r.Valeur),
+                r.Unite,
+                r.Famille,
+                heure);
+        }
+        _grille.ResumeLayout();
+    }
+
     private CartesianChart BuildChart()
     {
         var c = new CartesianChart { Dock = DockStyle.Fill };
@@ -150,6 +221,9 @@ public partial class FormDashboard : Form
             foreach (var r in latest)
                 if (_kpis.TryGetValue(r.Code, out var card))
                     card.Mettre(r.Valeur, r.Unite);
+
+            // Tableau des dernières valeurs (tous capteurs confondus).
+            MajTable(latest);
 
             // Détection de pic par seuil sur la puissance totale.
             var sys = latest.FirstOrDefault(r => r.Code == "SYSTEM_POWER");

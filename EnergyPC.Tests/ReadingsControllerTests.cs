@@ -31,6 +31,27 @@ public class ReadingsControllerTests
     }
 
     [Fact]
+    public async Task Aggregate_ParHeure_MoyenneCorrecte()
+    {
+        using var db = NouvelleBase();
+        var st = db.SensorTypes.First(s => s.Code == "CPU_POWER");
+        var baseTime = DateTime.UtcNow.AddMinutes(-30);
+
+        // Plusieurs mesures dans la même heure : moyenne attendue = 20.
+        db.Readings.Add(new Reading { SensorTypeId = st.Id, Horodatage = baseTime, Valeur = 10 });
+        db.Readings.Add(new Reading { SensorTypeId = st.Id, Horodatage = baseTime.AddMinutes(1), Valeur = 30 });
+        await db.SaveChangesAsync();
+
+        var ctrl = new ReadingsController(db);
+        var res = await ctrl.Aggregate("CPU_POWER", "heure", 120);
+
+        Assert.NotNull(res.Value);
+        var points = res.Value!.ToList();
+        Assert.NotEmpty(points);
+        Assert.Equal(20, points.First().Valeur, 1);
+    }
+
+    [Fact]
     public async Task Energie_IntegrationTrapeze_Correct()
     {
         using var db = NouvelleBase();
