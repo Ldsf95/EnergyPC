@@ -1,0 +1,30 @@
+## .NET / Visual Studio
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.userprefs
+
+## Build / publish output
+publish/
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+
+## Base de données SQLite générée à l'exécution
+*.db
+*.db-shm
+*.db-wal
+
+## Logs runtime
+logs/
+*.log
+
+## Rider / VS Code
+.idea/
+.vscode/
+
+## OS
+.DS_Store
+Thumbs.db

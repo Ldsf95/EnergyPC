@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    # WinForms cible net8.0-windows : la compilation complète exige Windows.
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore EnergyPC.sln
+
+      - name: Build
+        run: dotnet build EnergyPC.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test EnergyPC.Tests/EnergyPC.Tests.csproj --configuration Release --no-build --verbosity normal
